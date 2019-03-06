@@ -295,12 +295,12 @@ int main(int argc, char* argv[]) {
         m2 = atoi(argv[5]);
         nzInRow2 = atoi(argv[6]);
     } else {
-		n = 4;
-		m = 3;
-		nzInRow = 1;
-		n2 = 3;
-		m2 = 6;
-		nzInRow2 = 2;
+        n = 4;
+        m = 3;
+        nzInRow = 1;
+        n2 = 3;
+        m2 = 6;
+        nzInRow2 = 2;
     }
 
     if ((nzInRow > m) || (nzInRow2 > m2)) {
