@@ -282,17 +282,26 @@ void multiplication(const Matrix *A, const Matrix *BT) {
 
 int main(int argc, char* argv[]) {
     int n, m, nzInRow, n2, m2, nzInRow2;
-    if (argc != 7) {
+    if ((argc != 7) && (argc != 1)) {
         printf("Invalid input count of parametres.\n");
         exit(1);
     }
 
-    n = atoi(argv[1]);
-    m = atoi(argv[2]);
-    nzInRow = atoi(argv[3]);
-    n2 = atoi(argv[4]);
-    m2 = atoi(argv[5]);
-    nzInRow2 = atoi(argv[6]);
+    if (argc == 7) {
+        n = atoi(argv[1]);
+        m = atoi(argv[2]);
+        nzInRow = atoi(argv[3]);
+        n2 = atoi(argv[4]);
+        m2 = atoi(argv[5]);
+        nzInRow2 = atoi(argv[6]);
+    } else {
+		n = 4;
+		m = 3;
+		nzInRow = 1;
+		n2 = 3;
+		m2 = 6;
+		nzInRow2 = 2;
+    }
 
     if ((nzInRow > m) || (nzInRow2 > m2)) {
         printf("Invalid input count of notnull in string.\n");
@@ -306,7 +315,7 @@ int main(int argc, char* argv[]) {
     printf("Zadacha 1. The multiplication of sparse matrices. CRS. Complex type.\n");
     Matrix A(n, m, nzInRow*n);
     Matrix B(n2, m2, nzInRow2*n2);
-    Matrix BT(m2, n2, nzInRow2*m2);
+    Matrix BT(m2, n2, nzInRow2*n2);
     GetMatrix(n, m, nzInRow, &A);
 
     if ((A.N < 15) && (A.M < 15)) {
@@ -314,7 +323,7 @@ int main(int argc, char* argv[]) {
         Print(n, m, &A);
     }
 
-    GetMatrix(n2, m2, nzInRow, &B);
+    GetMatrix(n2, m2, nzInRow2, &B);
 
     if ((B.N < 15) && (B.M < 15)) {
         printf("matrix B \n");
