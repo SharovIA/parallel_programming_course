@@ -104,19 +104,18 @@ TComplex TComplex::operator /(const TComplex &R) {
 
 struct Matrix {
     int N;
-    int M;
     int NZ;
     TComplex *Value;
     int*Col;
     int*RowIndex;
 
-    Matrix(int n, int m, int nz) : N(n), M(m), NZ(nz) {
+    Matrix(int n, int nz) : N(n), NZ(nz) {
         Value = new TComplex[NZ];
         Col = new int[NZ];
         RowIndex = new int[N + 1];
     }
 
-    Matrix(Matrix &mat) : N(mat.N), M(mat.M), NZ(mat.NZ) {
+    Matrix(Matrix &mat) : N(mat.N), NZ(mat.NZ) {
         Value = new TComplex[mat.NZ];
         for (int i = 0; i < mat.NZ; i++)
             Value[i] = mat.Value[i];
@@ -129,13 +128,13 @@ struct Matrix {
     }
 };
 
-void Print(int N, int M, const Matrix *mat) {
+void Print(int N, const Matrix *mat) {
     int k = 0;
     int col;
 
     for (int i = 0; i < N; i++) {
         col = 0;
-        for (int j = 0; j < M; j++) {
+        for (int j = 0; j < N; j++) {
             if (((mat  -> Col[k]) == j) && (col < (mat -> RowIndex[i + 1] - mat -> RowIndex[i]))) {
                 (mat -> Value[k]).Print();
                 k++;
@@ -143,20 +142,20 @@ void Print(int N, int M, const Matrix *mat) {
             } else {
                 printf("0 ");
             }
-            if (j == (M - 1)) printf("\n");
+            if (j == (N - 1)) printf("\n");
         }
     }
     printf("\n");
 }
 
-void GetMatrix(int N, int M, int countinrow, const Matrix *mat) {
+void GetMatrix(int N, int countinrow, const Matrix *mat) {
     int tmp;
     bool flag;
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < countinrow; j++) {
             do {
-                mat -> Col[i*countinrow + j] = random(0, 32767) % M;
+                mat -> Col[i*countinrow + j] = random(0, 32767) % N;
                 flag = false;
                 for (int k = 0; k < j; k++)
                     if (mat -> Col[i*countinrow + j] == mat -> Col[i * countinrow + k]) flag = true;
@@ -194,7 +193,7 @@ void Transposing(Matrix *B, const Matrix *BT) {
         BT -> Col[i] = 0;
     }
 
-    for (int i = 0; i < (B -> M + 1); i++) {
+    for (int i = 0; i < (B -> N + 1); i++) {
         BT -> RowIndex[i] = 0;
     }
 
@@ -203,7 +202,7 @@ void Transposing(Matrix *B, const Matrix *BT) {
 
     int startIndex = 0;
     int tmp;
-    for (int i = 1; i < ((B -> M) + 1); i++) {
+    for (int i = 1; i < ((B -> N) + 1); i++) {
         tmp = BT -> RowIndex[i];
         BT -> RowIndex[i] = startIndex;
         startIndex = startIndex + tmp;
@@ -225,208 +224,40 @@ void Transposing(Matrix *B, const Matrix *BT) {
         }
     }
 
-    if ((BT -> N < 15) && (BT -> M < 15)) {
+    if (BT -> N < 15) {
         printf("\n matrix Bt \n");
-        Print(BT -> N, BT -> M, BT);
+        Print(BT -> N, BT);
     }
 }
 
 void multiplication(const Matrix *A, const Matrix *BT) {
-    double t1, t2;
-    double modul;
-    t1 = omp_get_wtime();
-/*	std::vector<TComplex>* val = new std::vector<TComplex>[A -> N];
-	std::vector<int>* columns = new std::vector<int>[A->N];
-	int* indexrow = new int[A -> N];
-	memset(indexrow, 0, sizeof(int) * A->N);
-	int  i, j, k;
- //----------------------------------------
-#pragma omp parallel
-	{
-		int *tmp = new int[A->N];
-     #pragma omp for private(j, k)
-		for (i = 0; i < A->N; i++) {
-			//i-я строка матрицы А
-			//обнуляем массив указ-лей на эл-ты
-			memset(tmp, -1, A->N * sizeof(int));
-			//идем по ненулевым эл-там строки заполняем массив указателей
-			int ind1 = A->RowIndex[i];
-			int ind2 = A->RowIndex[i + 1];
-			for (int j = ind1; j < ind2; j++) {
-				int col = A->Col[j];
-				tmp[col] = j;  //значит, что эл-т а[i, col] 
-				//лежит в ячейке массива val c номером tmp[col]
-			}
-			//готов индекс i-ой строки матрицы А
-			//умножаем ее на каждую из строк матрицы BT
-			for (j = 0; j < A->N; j++) {
-				//j-я строка матрицы В
-				TComplex summa = TComplex(0, 0);
-				int ind3 = BT->RowIndex[j];
-				int ind4 = BT->RowIndex[j + 1];
-				//все ненулевые эл-ты строки j матрицы ВТ
-				for (k = ind3; k < ind4; k++) {
-					int bcol = BT->Col[k];
-					int aind = tmp[bcol];
-					if (aind != -1)
-						summa = summa + A->Value[aind] * BT->Value[k];
-				}
-				modul = (summa.modul());
-				if (modul > zerocol) {
-					columns -> push_back(j);
-					val -> push_back(summa);
-					indexrow[i]++;
-				}
-			}
-		}
-		delete[] tmp;
-	}
-
-	int NZ = 0;
-	for (i = 0; i < A->N; i++) {
-		int temp = indexrow[i];
-		indexrow[i] = NZ;
-		NZ += temp;
-	}
-	indexrow[A->N] = NZ;
-
-	Matrix C(A->N, BT->N, NZ);
-
-	int count = 0;
-	for (i = 0; i < A->N; i++) {
-		int size = columns[i].size();
-		memcpy(&C.Col[count], &columns[i][0], size * sizeof(int));
-		memcpy(&C.Value[count], &val[i][0], size * sizeof(TComplex));
-		count += size;
-	}
-
-	memcpy(C.RowIndex, &indexrow[0], (A->N + 1) * sizeof(int));
-
-	delete[] indexrow;
-	delete[] columns;
-	delete[] val;
-
-	t2 = omp_get_wtime();
-
-	if ((C.N < 50) && (C.M < 15)) {
-		printf("Result matrix C: \n");
-		Print(C.N, C.M, &C);
-		printf(" \n");
-	}
-
-	printf("Runtime:  %f\n", t2 - t1);
-//----------------------------------------------------------------------------
-*/
-	//---------------------------------второй способ--------------------------
-/*	std::vector<TComplex> val;
+	double t1, t2;
+	double modul;
+	t1 = omp_get_wtime();
+	
+	std::vector<TComplex> val;
 	std::vector<int> columns;
-	//std::vector<int> indexrow;
-	//memset(indexrow, 0, sizeof(int) * A->N);
-	int* indexrow = new int[A->N];
-	memset(indexrow, 0, sizeof(int) * A->N);
-	//indexrow.push_back(0);
-	int  i, j, r, s, rowNZ;
+	std::vector<int> indexrow;
 
-#pragma omp parallel
-	{
-		int *tmp = new int[A->N];
-#pragma omp for private(j, rowNZ, r, s)
-		for (i = 0; i < A->N; i++) {
+	int  i = 0, j = 0, index1 = 0, index2 = 0, index3 = 0, index4 = 0;
 
-			rowNZ = 0;
-
-			for (j = 0; j < BT->N; j++) {
-
-				TComplex summa = TComplex(0, 0);
-
-				for (s = A->RowIndex[i]; s < A->RowIndex[i + 1]; s++) {
-
-					for (r = BT->RowIndex[j]; r < BT->RowIndex[j + 1]; r++) {
-
-						if (A->Col[s] == BT->Col[r]) {
-
-							summa = summa + ((A->Value[s])*(BT->Value[r]));
-
-						}
-
-					}
-
-				}
-				modul = (summa.modul());
-				if (modul > zerocol) {
-					columns.push_back(j);
-					val.push_back(summa);
-					indexrow[i]++;
-				}
-			}
-		}
-
-	}
-
-	int NZ = 0;
-	for (i = 0; i < A->N; i++) {
-		int temp = indexrow[i];
-		indexrow[i] = NZ;
-		NZ += temp;
-	}
-	indexrow[A->N] = NZ;
-
-	Matrix C(A->N, BT->N, columns.size());
-
-	for (unsigned int j = 0; j < columns.size(); j++) {
-		C.Col[j] = columns[j];
-		C.Value[j] = val[j];
-	}
-
-	for (int i = 0; i < (A->N + 1); i++)
-		C.RowIndex[i] = indexrow[i];
-
-
-	t2 = omp_get_wtime();
-
-	if ((C.N < 50) && (C.M < 15)) {
-		printf("Result matrix C: \n");
-		Print(C.N, C.M, &C);
-		printf(" \n");
-	}
-
-	printf("Runtime:  %f\n", t2 - t1);
-
-//------------------------------------------------------------------
-	*/
-//-----------------------------------3 sposob------------------------
-/*
-std::vector<TComplex>* val = new std::vector<TComplex>[A->N];
-std::vector<int>* columns = new std::vector<int>[A->N];
-int* indexrow = new int[A->N +1];
-memset(indexrow, 0, sizeof(int) * A->N);
-int  i, j, k;
-//----------------------------------------
-#pragma omp parallel
-{
 	int *tmp = new int[A->N];
-#pragma omp for private(j, k)
+	int NZ = 0;
+	indexrow.push_back(0);
 	for (i = 0; i < A->N; i++) {
-		//i-я строка матрицы А
-		//обнуляем массив указ-лей на эл-ты
 		memset(tmp, -1, A->N * sizeof(int));
-		//идем по ненулевым эл-там строки заполняем массив указателей
-		int ind1 = A->RowIndex[i];
-		int ind2 = A->RowIndex[i + 1];
-		for (int j = ind1; j < ind2; j++) {
+		index1 = A->RowIndex[i];
+		index2 = A->RowIndex[i + 1];
+		for (j = index1; j < index2; j++) {
 			int col = A->Col[j];
-			tmp[col] = j;  //значит, что эл-т а[i, col] 
-			//лежит в ячейке массива val c номером tmp[col]
+			tmp[col] = j;  
 		}
-		//готов индекс i-ой строки матрицы А
-		//умножаем ее на каждую из строк матрицы BT
+
 		for (j = 0; j < A->N; j++) {
-			//j-я строка матрицы В
 			TComplex summa = TComplex(0, 0);
-			int ind3 = BT->RowIndex[j];
-			int ind4 = BT->RowIndex[j + 1];
-			//все ненулевые эл-ты строки j матрицы ВТ
-			for (k = ind3; k < ind4; k++) {
+			 index3 = BT->RowIndex[j];
+			 index4 = BT->RowIndex[j + 1];
+			for (int k = index3; k < index4; k++) {
 				int bcol = BT->Col[k];
 				int aind = tmp[bcol];
 				if (aind != -1)
@@ -434,246 +265,156 @@ int  i, j, k;
 			}
 			modul = (summa.modul());
 			if (modul > zerocol) {
-				columns->push_back(j);
-				summa.Print();
-				val -> push_back(summa);
-				indexrow[i]++;
+				columns.push_back(j);
+				val.push_back(summa);
+				NZ++;
 			}
 		}
+		indexrow.push_back(NZ);
 	}
 	delete[] tmp;
+    Matrix C(A->N, NZ);
+
+	for (i = 0; i < NZ; i++) {
+		C.Col[i] = columns[i];
+		C.Value[i] = val[i];
+}
+	for (i = 0; i < A->N + 1; i++)
+		C.RowIndex[i] = indexrow[i];
+
+	t2 = omp_get_wtime();
+
+
+	if (C.N < 50) {
+		printf("Result matrix C: \n");
+		Print(C.N, &C);
+		printf(" \n");
+	}
+
+	printf("Runtime:  %f\n", t2 - t1);
 }
 
-int NZ = 0;
-for (i = 0; i < A->N; i++) {
-	int temp = indexrow[i];
-	indexrow[i] = NZ;
-	NZ += temp;
-}
-indexrow[A->N] = NZ;
 
-Matrix C(A->N, BT->N, NZ);
+void multiplicationOMP(const Matrix *A, const Matrix *BT) {
+    double t1, t2;
+    double modul;
 
-int count = 0;
-for (i = 0; i < A->N; i++) {
-	int size = columns[i].size();
-	memcpy(&C.Col[count], &columns[i][0], size * sizeof(int));
-	memcpy(&C.Value[count], &val[i][0], size * sizeof(TComplex));
-	count += size;
-}
+    t1 = omp_get_wtime();
+	std::vector<TComplex>* val = new std::vector<TComplex>[A->N];
+	std::vector<int>* columns = new std::vector<int>[A->N];
+	int* indexrow = new int[A->N + 1];
+	memset(indexrow, 0, sizeof(int) * A->N);
+	int  i = 0, j = 0, index1 = 0, index2 = 0, index3 = 0, index4 = 0;
+	int chunk = 5;
 
-memcpy(C.RowIndex, &indexrow[0], (A->N + 1) * sizeof(int));
-
-delete[] indexrow;
-delete[] columns;
-delete[] val;
-
-t2 = omp_get_wtime();
-
-
-//for (i = 0; i < A->N; i++) {
-//	int size = columns[i].size();
-//	memcpy(&C.Col[count], &columns[i][0], size * sizeof(int));
-//	memcpy(&C.Value[count], &val[i], size * sizeof(TComplex));
-//	count += size;
-//}
-
-t2 = omp_get_wtime();
-
-if ((C.N < 50) && (C.M < 15)) {
-	printf("Result matrix C: \n");
-	Print(C.N, C.M, &C);
-	printf(" \n");
-}
-
-printf("Runtime:  %f\n", t2 - t1);
-*/
-//---------------------------------------4----------------------------------
-    std::vector<TComplex>* val = new std::vector<TComplex>[A->N];
-    std::vector<int>* columns = new std::vector<int>[A->N];
-    int* indexrow = new int[A->N + 1];
-    memset(indexrow, 0, sizeof(int) * A->N);
-    int  i = 0, j = 0, ind1 = 0, ind2 = 0, ind3 = 0, ind4 = 0;
-//----------------------------------------
 #pragma omp parallel
-{
-    int *tmp = new int[A->N];
-#pragma omp for private(j, ind1, ind2, ind3, ind4)
-    for (i = 0; i < A->N; i++) {
-        //i-я строка матрицы А
-        //обнуляем массив указ-лей на эл-ты
-        memset(tmp, -1, A->N * sizeof(int));
-        //идем по ненулевым эл-там строки заполняем массив указателей
-        ind1 = A->RowIndex[i];
-        ind2 = A->RowIndex[i + 1];
-        for (j = ind1; j < ind2; j++) {
-            int col = A->Col[j];
-            tmp[col] = j;  //значит, что эл-т а[i, col] 
-                           //лежит в ячейке массива val c номером tmp[col]
-        }
-        //готов индекс i-ой строки матрицы А
-        //умножаем ее на каждую из строк матрицы BT
-        for (j = 0; j < A->N; j++) {
-            //j-я строка матрицы В
-            TComplex summa = TComplex(0, 0);
-             ind3 = BT->RowIndex[j];
-             ind4 = BT->RowIndex[j + 1];
-            //все ненулевые эл-ты строки j матрицы ВТ
-            for (int k = ind3; k < ind4; k++) {
-                int bcol = BT->Col[k];
-                int aind = tmp[bcol];
-                if (aind != -1)
-                    summa = summa + A->Value[aind] * BT->Value[k];
-            }
-            modul = (summa.modul());
-            if (modul > zerocol) {
-                columns->push_back(j);
-                val->push_back(summa);
-                indexrow[i]++;
-            }
-        }
-    }
-    delete[] tmp;
-}
+	{
+		int *tmp = new int[A->N];
+#pragma omp for private(j, index1, index2, index3, index4)schedule(static, chunk)
+		for (i = 0; i < A->N; i++) {
+			memset(tmp, -1, A->N * sizeof(int));
+			index1 = A->RowIndex[i];
+			index2 = A->RowIndex[i + 1];
+			for (j = index1; j < index2; j++) {
+				int col = A->Col[j];
+				tmp[col] = j;
+			}
 
-    int NZ = 0;
-    for (i = 0; i < A->N; i++) {
-       int temp = indexrow[i];
-       indexrow[i] = NZ;
-       NZ += temp;
-}
-    indexrow[A->N] = NZ;
+			for (j = 0; j < A->N; j++) {
+				TComplex summa = TComplex(0, 0);
+				index3 = BT->RowIndex[j];
+				index4 = BT->RowIndex[j + 1];
+				for (int k = index3; k < index4; k++) {
+					int bcol = BT->Col[k];
+					int aind = tmp[bcol];
+					if (aind != -1)
+						summa = summa + A->Value[aind] * BT->Value[k];
+				}
+				modul = (summa.modul());
+				if (modul > zerocol) {
+					columns[i].push_back(j);
+					val[i].push_back(summa);
+					indexrow[i]++;
+				}
+			}
+		}
+		delete[] tmp;
+	}
+	int NZ = 0;
+	for (i = 0; i < A->N; i++) {
+		int temp = indexrow[i];
+		indexrow[i] = NZ;
+		NZ += temp;
+	}
+	indexrow[A->N] = NZ;
 
-    Matrix C(A->N, BT->N, NZ);
-    
+	Matrix C(A->N, NZ);
 
-    int count = 0;
-    for (i = 0; i < A ->N; i++) {
-    int size = columns[i].size();
-    memcpy(&C.Col[count], &columns[i][0], size * sizeof(int));
-    memcpy(&C.Value[count], &val[i][0], size * sizeof(TComplex));
-    //memcpy(&C.Col[count], &columns[i][0], size * sizeof(int));
-    //memcpy(&C.Value[count], &val[i][0], size * sizeof(TComplex));
-    count += size;
-}
+	int count = 0;
+	for (i = 0; i < A->N; i++) {
+	    int size = static_cast<int>(columns[i].size());
+		memcpy(&C.Col[count], &columns[i][0], size * sizeof(int));
+		memcpy(&C.Value[count], &val[i][0], size * sizeof(TComplex));
+		count += size;
+	}
+	memcpy(C.RowIndex, &indexrow[0], (A->N + 1) * sizeof(int));
 
-    memcpy(C.RowIndex, &indexrow[0], (A->N + 1) * sizeof(int));
+	delete[] indexrow;
+	delete[] columns;
+	delete[] val;
 
-    delete[] indexrow;
-    delete[] columns;
-    delete[] val;
-
-    t2 = omp_get_wtime();
-
-if ((C.N < 50) && (C.M < 15)) {
+	t2 = omp_get_wtime();
+	
+    if (C.N < 50) {
     printf("Result matrix C: \n");
-    Print(C.N, C.M, &C);
+    Print(C.N, &C);
     printf(" \n");
-}
-
-printf("Runtime:  %f\n", t2 - t1);
-//------------------------------------------------------------------
-
-  /*i  int rowNZ;
-    indexrow.push_back(0);
-    for (int i = 0; i < A -> N; i++) {
-        rowNZ = 0;
-        for (int j = 0; j < BT -> N; j++) {
-            TComplex summa = TComplex(0, 0);
-            for (int s = A -> RowIndex[i]; s < A -> RowIndex[i + 1]; s++) {
-                for (int r = BT -> RowIndex[j]; r < BT -> RowIndex[j + 1]; r++) {
-                    if (A -> Col[s] == BT -> Col[r]) {
-                        summa = summa + ((A -> Value[s])*(BT -> Value[r]));
-                    }
-                }
-            }
-            modul = (summa.modul());
-            if (modul > zerocol) {
-                columns.push_back(j);
-                val.push_back(summa);
-                rowNZ++;
-            }
-        }
-        indexrow.push_back(rowNZ + indexrow[i]);
     }
 
-    Matrix C(A -> N, BT -> N, columns.size());
-
-    for (unsigned int j = 0; j < columns.size(); j++) {
-        C.Col[j] = columns[j];
-        C.Value[j] = val[j];
-    }
-
-    for (int i = 0; i < (A -> N + 1); i++)
-        C.RowIndex[i] = indexrow[i];
-    t2 = omp_get_wtime();
-
-    if ((C.N < 50) && (C.M < 15)) {
-        printf("Result matrix C: \n");
-        Print(C.N, C.M, &C);
-        printf(" \n");
-    }
     printf("Runtime:  %f\n", t2 - t1);
-	*/
 }
 
 int main(int argc, char* argv[]) {
-    int n, m, nzInRow, n2, m2, nzInRow2;
-    if ((argc != 7) && (argc != 1)) {
-        printf("Invalid input count of parametres.\n");
-        exit(1);
-    }
 
-    if (argc == 7) {
+	
+	int n, nzInRow;
+
+    if (argc == 3) {
         n = atoi(argv[1]);
-        m = atoi(argv[2]);
-        nzInRow = atoi(argv[3]);
-        n2 = atoi(argv[4]);
-        m2 = atoi(argv[5]);
-        nzInRow2 = atoi(argv[6]);
+        nzInRow = atoi(argv[2]);
     } else {
-        //n = 4;
-        //m = 3;
-        //nzInRow = 1;
-        //n2 = 3;
-        //m2 = 6;
-        //nzInRow2 = 2;
-		n = 4;
-		m = 4;
+		n = 5;
 		nzInRow = 2;
-		n2 = 4;
-		m2 = 4;
-		nzInRow2 = 2;
     }
 
-    if ((nzInRow > m) || (nzInRow2 > m2)) {
+    if (nzInRow > n) {
         printf("Invalid input count of notnull in string.\n");
-        exit(1);
-    }
-    if (m != n2) {
-        printf("Invalid input: M1 != N2 .\n");
         exit(1);
     }
 
     printf("Zadacha 1. The multiplication of sparse matrices. CRS. Complex type.\n");
-    Matrix A(n, m, nzInRow*n);
-    Matrix B(n2, m2, nzInRow2*n2);
-    Matrix BT(m2, n2, nzInRow2*n2);
-    GetMatrix(n, m, nzInRow, &A);
+    Matrix A(n, nzInRow*n);
+    Matrix B(n, nzInRow*n);
+    Matrix BT(n, nzInRow*n);
+    GetMatrix(n, nzInRow, &A);
 
-    if ((A.N < 15) && (A.M < 15)) {
+    if (A.N < 15) {
         printf("matrix A \n");
-        Print(n, m, &A);
+        Print(n, &A);
     }
 
-    GetMatrix(n2, m2, nzInRow2, &B);
+    GetMatrix(n, nzInRow, &B);
 
-    if ((B.N < 15) && (B.M < 15)) {
+    if (B.N < 15) {
         printf("matrix B \n");
-        Print(n2, m2, &B);
+        Print(n, &B);
     }
 
     Transposing(&B, &BT);
-    multiplication(&A, &BT);
+	printf("Posledovatelnaya\n");
+	multiplication(&A, &BT);
+	printf("\n openMP\n");
+	multiplicationOMP(&A, &BT);
     return 0;
+	
 }
