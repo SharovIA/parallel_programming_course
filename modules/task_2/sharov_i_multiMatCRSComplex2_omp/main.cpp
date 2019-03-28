@@ -1,6 +1,7 @@
 // Copyright 2019 Sharov Ivan
 #include <assert.h>
 #include <stdio.h>
+#include <cstring>
 #include <omp.h>
 #include <iostream>
 #include <cmath>
