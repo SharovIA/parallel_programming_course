@@ -375,7 +375,6 @@ void multiplicationOMP(const Matrix *A, const Matrix *BT) {
 }
 
 int main(int argc, char* argv[]) {
-
     int n, nzInRow;
 
     if (argc == 3) {
