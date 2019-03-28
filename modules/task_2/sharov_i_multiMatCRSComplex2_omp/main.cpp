@@ -1,12 +1,12 @@
 // Copyright 2019 Sharov Ivan
+#include <omp.h>
 #include <assert.h>
 #include <stdio.h>
-#include <cstring>
-#include <omp.h>
-#include <iostream>
-#include <cmath>
 #include <vector>
+#include <iostream>
 #include <random>
+#include <cstring>
+#include <cmath>
 
 const double zerocol = 0.000001;
 
