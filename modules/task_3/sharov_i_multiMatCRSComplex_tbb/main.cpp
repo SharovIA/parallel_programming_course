@@ -288,7 +288,7 @@ void multiplication(const Matrix *A, const Matrix *BT) {
         printf(" \n");
     }
 
-    printf("Runtime:  %Lg\n", time);
+    printf("Runtime:  %f\n", time);
 }
 
 
@@ -381,7 +381,7 @@ void multiplicationTBB(const Matrix *A, const Matrix *BT) {
     printf(" \n");
     }
 
-    printf("Runtime:  %Lg\n", time);
+    printf("Runtime:  %f\n", time);
 }
 
 int main(int argc, char* argv[]) {
