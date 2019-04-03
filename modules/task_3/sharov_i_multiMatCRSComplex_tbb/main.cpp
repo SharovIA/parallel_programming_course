@@ -232,9 +232,8 @@ void Transposing(Matrix *B, const Matrix *BT) {
 }
 
 void multiplication(const Matrix *A, const Matrix *BT) {
-
     double modul;
-	tbb::tick_count t1 = tbb::tick_count::now();
+    tbb::tick_count t1 = tbb::tick_count::now();
     std::vector<TComplex> val;
     std::vector<int> columns;
     std::vector<int> indexrow;
@@ -281,7 +280,7 @@ void multiplication(const Matrix *A, const Matrix *BT) {
     }
     for (i = 0; i < A->N + 1; i++)
         C.RowIndex[i] = indexrow[i];
-	double time = (tbb::tick_count::now() - t1).seconds();
+    double time = (tbb::tick_count::now() - t1).seconds();
 
     if (C.N < 50) {
         printf("Result matrix C: \n");
@@ -289,72 +288,71 @@ void multiplication(const Matrix *A, const Matrix *BT) {
         printf(" \n");
     }
 
-	printf("Runtime:  %Lg\n", time);
+    printf("Runtime:  %Lg\n", time);
 }
 
 
 class MulFactor {
-	const Matrix *A, *BT;
-	std::vector<int>* columns;
-	std::vector<TComplex>* val;
-	int *indexrow;
+    const Matrix *A, *BT;
+    std::vector<int>* columns;
+    std::vector<TComplex>* val;
+    int *indexrow;
 
-public:
-	MulFactor(const Matrix *_A, const Matrix *_BT, std::vector<int>* _columns,
-		std::vector<TComplex>* _val, int *_indexrow) : columns(_columns),
-		val(_val), indexrow(_indexrow) {
-		A = _A;
-		BT = _BT;
-	}
+ public:
+    MulFactor(const Matrix *_A, const Matrix *_BT, std::vector<int>* _columns,
+        std::vector<TComplex>* _val, int *_indexrow) : columns(_columns),
+        val(_val), indexrow(_indexrow) {
+        A = _A;
+        BT = _BT;
+    }
 
-	void operator () (const tbb::blocked_range<int>& q) const {
-		int begin = q.begin();
-		int end = q.end();
-		double modul;
-		int  i, j, k;
+    void operator () (const tbb::blocked_range<int>& q) const {
+        int begin = q.begin();
+        int end = q.end();
+        double modul;
+        int  i, j, k;
 
-		int *tmp = new int[A->N];
-		for (i = begin; i < end; i++) {
-			memset(tmp, -1, A->N * sizeof(int));
-			int index1 = A->RowIndex[i];
-			int index2 = A->RowIndex[i + 1];
-			for (j = index1; j < index2; j++) {
-				int col = A->Col[j];
-				tmp[col] = j;
-			}
+        int *tmp = new int[A->N];
+        for (i = begin; i < end; i++) {
+            memset(tmp, -1, A->N * sizeof(int));
+            int index1 = A->RowIndex[i];
+            int index2 = A->RowIndex[i + 1];
+            for (j = index1; j < index2; j++) {
+                int col = A->Col[j];
+                tmp[col] = j;
+            }
 
-			for (j = 0; j < A->N; j++) {
-				TComplex summa = TComplex(0, 0);
-				int index3 = BT->RowIndex[j];
-				int index4 = BT->RowIndex[j + 1];
-				for (k = index3; k < index4; k++) {
-					int bcol = BT->Col[k];
-					int aind = tmp[bcol];
-					if (aind != -1)
-						summa = summa + A->Value[aind] * BT->Value[k];
-				}
-				modul = (summa.modul());
-				if (modul > zerocol) {
-					columns[i].push_back(j);
-					val[i].push_back(summa);
-					indexrow[i]++;
-				}
-			}
-		}
-		delete[] tmp;
-
-	}
+            for (j = 0; j < A->N; j++) {
+                TComplex summa = TComplex(0, 0);
+                int index3 = BT->RowIndex[j];
+                int index4 = BT->RowIndex[j + 1];
+                for (k = index3; k < index4; k++) {
+                    int bcol = BT->Col[k];
+                    int aind = tmp[bcol];
+                    if (aind != -1)
+                        summa = summa + A->Value[aind] * BT->Value[k];
+                }
+                modul = (summa.modul());
+                if (modul > zerocol) {
+                    columns[i].push_back(j);
+                    val[i].push_back(summa);
+                    indexrow[i]++;
+                }
+            }
+        }
+        delete[] tmp;
+    }
 };
 
 void multiplicationTBB(const Matrix *A, const Matrix *BT) {
-	tbb::tick_count t1 = tbb::tick_count::now();
+    tbb::tick_count t1 = tbb::tick_count::now();
     std::vector<TComplex>* val = new std::vector<TComplex>[A->N];
     std::vector<int>* columns = new std::vector<int>[A->N];
     int* indexrow = new int[A->N + 1];
     memset(indexrow, 0, sizeof(int) * A->N);
 
-	tbb::parallel_for(tbb::blocked_range<int>(0, A->N),
-		MulFactor(A, BT, columns, val, indexrow));
+    tbb::parallel_for(tbb::blocked_range<int>(0, A->N),
+        MulFactor(A, BT, columns, val, indexrow));
 
     int NZ = 0;
     for (int i = 0; i < A->N; i++) {
@@ -375,7 +373,7 @@ void multiplicationTBB(const Matrix *A, const Matrix *BT) {
     }
     memcpy(C.RowIndex, &indexrow[0], (A->N + 1) * sizeof(int));
 
-	double time = (tbb::tick_count::now() - t1).seconds();
+    double time = (tbb::tick_count::now() - t1).seconds();
 
     if (C.N < 50) {
     printf("Result matrix C: \n");
@@ -392,11 +390,11 @@ int main(int argc, char* argv[]) {
     if (argc == 4) {
         n = atoi(argv[1]);
         nzInRow = atoi(argv[2]);
-		countThreads = atoi(argv[3]);
+        countThreads = atoi(argv[3]);
     } else {
         n = 5;
         nzInRow = 2;
-		countThreads = 2;
+        countThreads = 2;
     }
 
     if (nzInRow > n) {
@@ -426,8 +424,8 @@ int main(int argc, char* argv[]) {
     printf("Posledovatelnaya\n");
     multiplication(&A, &BT);
     printf("\n TBB\n");
-	tbb::task_scheduler_init init(countThreads);
+    tbb::task_scheduler_init init(countThreads);
     multiplicationTBB(&A, &BT);
-	std::cout << "Count threads = " << countThreads << std::endl;
+    std::cout << "Count threads = " << countThreads << std::endl;
     return 0;
 }
